@@ -6,17 +6,27 @@ use Codeception\Attribute\Before;
 
 final class ConfigParamsCest
 {
+    /**
+     * @beforeClass
+     */
+    public static function _beforeClass(CliGuy $I)
+    {
+        $I->amInPath('tests/data/params');
+        $I->executeCommand('build');
+    }
+
+    /**
+     * @afterClass
+     */
+    public static function _afterClass(CliGuy $I)
+    {
+        $I->amInPath('tests/data/params');
+        $I->executeCommand('clean');
+    }
+
     private function moveToTestDir(CliGuy $I): void
     {
-        static $prepared = false;
-
         $I->amInPath('tests/data/params');
-
-        if ($prepared) {
-            return;
-        }
-        $I->executeCommand('build');
-        $prepared = true;
     }
 
     #[Before('moveToTestDir')]
