@@ -137,6 +137,9 @@ class Di
         foreach ($parameters as $k => $parameter) {
             $dependency = ReflectionHelper::getClassFromParameter($parameter);
             if (is_null($dependency)) {
+                if ($parameter->isVariadic()) {
+                    continue;
+                }
                 if (!$parameter->isOptional()) {
                     if (!isset($defaults[$k])) {
                         throw new InjectionException("Parameter '{$parameter->name}' must have default value.");
@@ -148,6 +151,9 @@ class Di
             } else {
                 $arg = $this->instantiate($dependency);
                 if (is_null($arg)) {
+                    if ($parameter->isVariadic()) {
+                        continue;
+                    }
                     throw new InjectionException("Failed to resolve dependency '{$dependency}'.");
                 }
                 $args[] = $arg;

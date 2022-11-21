@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace Codeception\Test;
 
-use PHPUnit\Framework\ErrorTestCase;
-use PHPUnit\Framework\Test as PHPUnitTest;
-use PHPUnit\Framework\WarningTestCase;
-
 class Filter
 {
     private ?string $namePattern = null;
@@ -74,17 +70,13 @@ class Filter
         $this->namePattern = $namePattern;
     }
 
-    public function isNameAccepted(PHPUnitTest $test): bool
+    public function isNameAccepted(Test $test): bool
     {
         if ($this->namePattern === null) {
             return true;
         }
 
-        if ($test instanceof ErrorTestCase || $test instanceof WarningTestCase) {
-            $name = $test->getMessage();
-        } else {
-            $name = Descriptor::getTestSignature($test) . Descriptor::getTestDataSetIndex($test);
-        }
+        $name = Descriptor::getTestSignature($test) . Descriptor::getTestDataSetIndex($test);
 
         $accepted = preg_match($this->namePattern, $name, $matches);
 
@@ -95,12 +87,12 @@ class Filter
         return (bool)$accepted;
     }
 
-    public function isGroupAccepted(PHPUnitTest $test, array $groups): bool
+    public function isGroupAccepted(Test $test, array $groups): bool
     {
-        if ($this->includeGroups !== null && count(\array_intersect($groups, $this->includeGroups)) === 0) {
+        if ($this->includeGroups !== null && $this->includeGroups !== [] && count(\array_intersect($groups, $this->includeGroups)) === 0) {
             return false;
         }
-        if ($this->excludeGroups !== null && count(\array_intersect($groups, $this->excludeGroups)) > 0) {
+        if ($this->excludeGroups !== null && $this->excludeGroups !== [] && count(\array_intersect($groups, $this->excludeGroups)) > 0) {
             return false;
         }
 

@@ -113,7 +113,10 @@ class Annotation
         $attr = $this->attribute($annotation);
         if ($attr) {
             $arguments = $attr->getArguments();
-            return reset($arguments);
+            if (count($arguments) === 0) {
+                return '';
+            }
+            return $arguments[0];
         }
         $docBlock = (string)$this->currentReflectedItem->getDocComment();
         if (preg_match(sprintf(self::$regex, $annotation), $docBlock, $matched)) {
@@ -130,8 +133,14 @@ class Annotation
                 return $attr->getArguments();
             }
             $attrs = $this->attributes();
+            if ($annotation === 'example') {
+                $annotation = 'examples'; // we renamed this annotation
+            }
             $name = ucfirst($annotation);
             $attrs = array_filter($attrs, fn ($a) => $a->getName() === "Codeception\\Attribute\\$name");
+            if ($annotation === 'examples') {
+                return array_map(fn (\ReflectionAttribute $a) => $a->getArguments(), $attrs);
+            }
             return array_merge(...array_map(fn (\ReflectionAttribute $a) => $a->getArguments(), $attrs));
         }
         $docBlock = (string)$this->currentReflectedItem->getDocComment();

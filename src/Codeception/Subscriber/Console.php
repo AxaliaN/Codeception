@@ -10,6 +10,7 @@ use Codeception\Event\StepEvent;
 use Codeception\Event\SuiteEvent;
 use Codeception\Event\TestEvent;
 use Codeception\Events;
+use Codeception\Exception\UselessTestException;
 use Codeception\Lib\Console\Message;
 use Codeception\Lib\Console\MessageFactory;
 use Codeception\Lib\Console\Output;
@@ -26,11 +27,8 @@ use Codeception\TestInterface;
 use Codeception\Util\Debug;
 use Codeception\Util\StackTraceFilter;
 use PHPUnit\Framework\AssertionFailedError;
-use PHPUnit\Framework\ExceptionWrapper;
 use PHPUnit\Framework\ExpectationFailedException;
 use PHPUnit\Framework\IncompleteTestError;
-use PHPUnit\Framework\RiskyTest;
-use PHPUnit\Framework\RiskyTestError;
 use PHPUnit\Framework\SelfDescribing;
 use PHPUnit\Framework\SkippedTest;
 use SebastianBergmann\Timer\Duration;
@@ -208,7 +206,6 @@ class Console implements EventSubscriberInterface
     public function startTest(TestEvent $event): void
     {
         $this->conditionalFails = [];
-        /** @var SelfDescribing $test */
         $test = $event->getTest();
         $this->printedTest = $test;
         $this->message = null;
@@ -336,7 +333,7 @@ class Console implements EventSubscriberInterface
             return;
         }
 
-        if ($result->wasSuccessfulAndNoTestIsRiskyOrSkippedOrIncomplete()) {
+        if ($result->wasSuccessfulAndNoTestIsUselessOrSkippedOrIncomplete()) {
             $message = sprintf(
                 'OK (%d test%s, %d assertion%s)',
                 $testCount,
@@ -515,7 +512,6 @@ class Console implements EventSubscriberInterface
 
     public function printFail(FailEvent $event, int $eventNumber): void
     {
-        /** @var SelfDescribing|TestInterface $failedTest */
         $failedTest = $event->getTest();
         $fail = $event->getFail();
 
@@ -525,7 +521,7 @@ class Console implements EventSubscriberInterface
 
         // Clickable `editor_url`:
         if (isset($this->options['editor_url']) && is_string($this->options['editor_url'])) {
-            $filePath = codecept_absolute_path(Descriptor::getTestFileName($failedTest));
+            $filePath = $failedTest->getFilename();
             $line = 1;
             foreach ($fail->getTrace() as $trace) {
                 if (isset($trace['file']) && $filePath === $trace['file'] && isset($trace['line'])) {
@@ -534,14 +530,13 @@ class Console implements EventSubscriberInterface
             }
             $message = str_replace(['%%file%%', '%%line%%'], [$filePath, $line], $this->options['editor_url']);
         } else {
-            $message = codecept_relative_path(Descriptor::getTestFullName($failedTest));
+            $message = Descriptor::getTestFullName($failedTest);
         }
         $testStyle = 'error';
         if (
             $fail instanceof SkippedTest
             || $fail instanceof IncompleteTestError
-            || $fail instanceof RiskyTest
-            || $fail instanceof RiskyTestError
+            || $fail instanceof UselessTestException
         ) {
             $testStyle = 'warning';
         }
@@ -587,9 +582,7 @@ class Console implements EventSubscriberInterface
             return;
         }
 
-        $class = $exception instanceof ExceptionWrapper
-            ? $exception->getClassname()
-            : $exception::class;
+        $class = $exception::class;
 
         if (str_starts_with($class, 'Codeception\Exception')) {
             $class = substr($class, strlen('Codeception\Exception\\'));
@@ -652,8 +645,7 @@ class Console implements EventSubscriberInterface
         if (
             $exception instanceof SkippedTest
             || $exception instanceof IncompleteTestError
-            || $exception instanceof RiskyTest
-            || $exception instanceof RiskyTestError
+            || $exception instanceof UselessTestException
         ) {
             return;
         }

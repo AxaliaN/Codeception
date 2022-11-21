@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Codeception\Attribute\Group;
+use Codeception\Test\Descriptor;
 use Codeception\Test\Loader as TestLoader;
 
 #[Group('load')]
@@ -76,7 +77,7 @@ final class TestLoaderTest extends \Codeception\PHPUnit\TestCase
     {
         $testNames = [];
         foreach ($tests as $test) {
-            $testNames[] = \Codeception\Test\Descriptor::getTestSignature($test);
+            $testNames[] = Descriptor::getTestSignature($test);
         }
 
         return $testNames;
@@ -91,19 +92,20 @@ final class TestLoaderTest extends \Codeception\PHPUnit\TestCase
     {
         $this->testLoader->loadTest('SimpleWithDataProviderArrayCest.php');
         $tests = $this->testLoader->getTests();
-        /** @var \PHPUnit\Framework\DataProviderTestSuite $firstTest */
-        $firstTest = $tests[0];
-
-        $this->assertSame(5, $firstTest->count());
+        $this->assertCount(3, $tests);
     }
 
     public function testDataProviderReturningGenerator()
     {
         $this->testLoader->loadTest('SimpleWithDataProviderYieldGeneratorCest.php');
         $tests = $this->testLoader->getTests();
-        /** @var \PHPUnit\Framework\DataProviderTestSuite $firstTest */
-        $firstTest = $tests[0];
+        $this->assertCount(3, $tests);
+    }
 
-        $this->assertSame(5, $firstTest->count());
+    public function testLoadTestWithExamples()
+    {
+        $this->testLoader->loadTest('SimpleWithExamplesCest.php');
+        $tests = $this->testLoader->getTests();
+        $this->assertCount(3, $tests);
     }
 }

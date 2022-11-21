@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Codeception;
 
 use Codeception\Event\FailEvent;
-use PHPUnit\Framework\Test;
-use SebastianBergmann\CodeCoverage\CodeCoverage;
+use Codeception\Test\Test;
 
 class ResultAggregator
 {
@@ -157,7 +156,15 @@ class ResultAggregator
         return ($this->errorCount() + $this->failureCount()) === 0;
     }
 
+    /**
+     * @deprecated replaced by wasSuccessfulAndNoTestIsUselessOrSkippedOrIncomplete
+     */
     public function wasSuccessfulAndNoTestIsRiskyOrSkippedOrIncomplete(): bool
+    {
+        return $this->wasSuccessfulAndNoTestIsUselessOrSkippedOrIncomplete();
+    }
+
+    public function wasSuccessfulAndNoTestIsUselessOrSkippedOrIncomplete(): bool
     {
         return $this->wasSuccessful()
             && ($this->uselessCount() + $this->skippedCount() + $this->incompleteCount()) === 0;

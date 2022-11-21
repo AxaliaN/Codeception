@@ -192,9 +192,7 @@ abstract class InitTemplate
 
     protected function gitIgnore(string $path): void
     {
-        if (file_exists(self::GIT_IGNORE)) {
-            file_put_contents($path . DIRECTORY_SEPARATOR . self::GIT_IGNORE, "*\n!" . self::GIT_IGNORE);
-        }
+        file_put_contents($path . DIRECTORY_SEPARATOR . self::GIT_IGNORE, "*\n!" . self::GIT_IGNORE . "\n");
     }
 
     protected function checkInstalled(string $dir = '.'): void
@@ -250,8 +248,8 @@ abstract class InitTemplate
                     continue;
                 }
                 $package = $packages[$module];
-                $this->say(sprintf('"%s": "%s"', $package, "^1.0.0"));
-                $composer[$section][$package] = "^1.0.0";
+                $this->say(sprintf('"%s": "%s"', $package, "*"));
+                $composer[$section][$package] = "*";
             }
             $this->say('');
             return null;
@@ -281,7 +279,7 @@ abstract class InitTemplate
                 continue;
             }
             $this->sayInfo("Adding {$package} for {$module} to composer.json");
-            $composer[$section][$package] = "^1.0.0";
+            $composer[$section][$package] = "*";
             ++$packageCounter;
         }
 

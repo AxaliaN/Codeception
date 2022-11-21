@@ -19,7 +19,7 @@ class Metadata
 
     protected string $feature = '';
 
-    protected ?int $index = null;
+    protected null|int|string $index = null;
 
     protected array $params = [
         'env' => [],
@@ -34,6 +34,14 @@ class Metadata
     protected array $services = [];
 
     protected array $reports = [];
+    /**
+     * @var string[]
+     */
+    private array $beforeClassMethods = [];
+    /**
+     * @var string[]
+     */
+    private array $afterClassMethods = [];
 
     public function getEnv(): array
     {
@@ -108,12 +116,12 @@ class Metadata
         return $this->filename;
     }
 
-    public function setIndex(int $index): void
+    public function setIndex(int|string $index): void
     {
         $this->index = $index;
     }
 
-    public function getIndex(): ?int
+    public function getIndex(): null|int|string
     {
         return $this->index;
     }
@@ -192,7 +200,11 @@ class Metadata
 
         // set singular value for some params
         foreach (['skip', 'incomplete'] as $single) {
-            $this->params[$single] = empty($this->params[$single]) ? null : (string)$this->params[$single][0];
+            if (empty($this->params[$single])) {
+                $this->params[$single] = null;
+            } else {
+                $this->params[$single] = (string)($this->params[$single][0] ?? $this->params[$single][1]);
+            }
         }
     }
 
@@ -233,5 +245,37 @@ class Metadata
     public function setParams(array $params): void
     {
         $this->params = array_merge_recursive($this->params, $params);
+    }
+
+    /**
+     * @param string[] $beforeClassMethods
+     */
+    public function setBeforeClassMethods(array $beforeClassMethods): void
+    {
+        $this->beforeClassMethods = $beforeClassMethods;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getBeforeClassMethods(): array
+    {
+        return $this->beforeClassMethods;
+    }
+
+    /**
+     * @param string[] $afterClassMethods
+     */
+    public function setAfterClassMethods(array $afterClassMethods): void
+    {
+        $this->afterClassMethods = $afterClassMethods;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getAfterClassMethods(): array
+    {
+        return $this->afterClassMethods;
     }
 }

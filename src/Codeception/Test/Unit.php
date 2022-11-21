@@ -32,8 +32,6 @@ class Unit extends TestCase implements
 
     private ?Metadata $metadata = null;
 
-    private ?ResultAggregator $resultAggregator = null;
-
     public function getMetadata(): Metadata
     {
         if (!$this->metadata) {
@@ -44,15 +42,7 @@ class Unit extends TestCase implements
 
     public function getResultAggregator(): ResultAggregator
     {
-        if ($this->resultAggregator === null) {
-            throw new \LogicException('ResultAggregator is not set');
-        }
-        return $this->resultAggregator;
-    }
-
-    public function setResultAggregator(?ResultAggregator $resultAggregator): void
-    {
-        $this->resultAggregator = $resultAggregator;
+        throw new \LogicException('This method should not be called, TestCaseWrapper class must be used instead');
     }
 
     protected function _setUp()
@@ -137,7 +127,7 @@ class Unit extends TestCase implements
     public function getReportFields(): array
     {
         return [
-            'name'    => $this->getName(),
+            'name'    => $this->getName(false),
             'class'   => get_class($this),
             'file'    => $this->getMetadata()->getFilename()
         ];
@@ -153,5 +143,15 @@ class Unit extends TestCase implements
             $names[] = $required;
         }
         return $names;
+    }
+
+    public function getFileName(): string
+    {
+        return $this->getMetadata()->getFilename();
+    }
+
+    public function getSignature(): string
+    {
+        return $this->getName(false);
     }
 }

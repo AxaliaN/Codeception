@@ -484,6 +484,13 @@ EOF
         $I->seeInShellOutput('Skipped: 2');
     }
 
+    public function resultIsPassedToDependentTest(CliGuy $I)
+    {
+        $I->executeCommand('run unit ResultIsPassedToDependentTest --no-exit');
+        $I->dontSeeInShellOutput('Skipped:');
+        $I->seeInShellOutput('OK (3 tests, 4 assertions)');
+    }
+
     public function runGherkinTest(CliGuy $I)
     {
         $I->executeCommand('run scenario File.feature --steps');
@@ -636,15 +643,6 @@ EOF
         $I->seeInShellOutput('Failures: 2.');
     }
 
-    public function runInvalidDataProvider(CliGuy $I)
-    {
-        $I->executeCommand('run unit InvalidDataProviderTest.php', false);
-        $I->seeInShellOutput('There was 1 error');
-        $I->seeInShellOutput('[PHPUnit\Framework\Error] The data provider specified for InvalidDataProviderTest::testInvalidDataProvider is invalid');
-        $I->seeInShellOutput('Tests: 1,');
-        $I->seeInShellOutput('Errors: 1.');
-    }
-
     #[Group('shuffle')]
     public function showSeedNumberOnShuffle(CliGuy $I)
     {
@@ -781,6 +779,9 @@ EOF
         $I->seeInShellOutput('Response: ' . $expectedReportAbsFilename);
         $I->seeFileFound('report.html', $expectedRelReportPath);
         $I->seeInThisFile("See <a href='" . $expectedReportFilename . "' target='_blank'>HTML snapshot</a> of a failed page");
+        $I->seeInThisFile('Failed asserting that on page /');
+        $I->seeInThisFile('<td class="scenarioSuccessValue"><strong>0</strong></td>');
+        $I->seeInThisFile('<td class="scenarioSuccessValue"><strong>0</strong></td>');
     }
 
     private function htmlReportRegexCheckProvider(): array

@@ -9,23 +9,21 @@ use Codeception\Event\TestEvent;
 use Codeception\Events;
 use Codeception\Lib\Console\Output;
 use Codeception\Subscriber\Shared\StaticEventsTrait;
-use Codeception\Test\Interfaces\Reported;
+use Codeception\Test\Test;
+use Codeception\Test\TestCaseWrapper;
 use Codeception\Util\StackTraceFilter;
 use DOMDocument;
 use DOMElement;
 use InvalidArgumentException;
-use PHPUnit\Framework\ExceptionWrapper;
 use PHPUnit\Framework\SelfDescribing;
-use PHPUnit\Framework\Test;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\TestFailure;
+use PHPUnit\Runner\Version as PHPUnitVersion;
+use PHPUnit\Util\ThrowableToStringMapper;
 use PHPUnit\Util\Xml;
-use ReflectionClass;
 use ReflectionException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Throwable;
 
-use function method_exists;
 use function sprintf;
 use function str_replace;
 
@@ -215,38 +213,14 @@ class JUnitReporter implements EventSubscriberInterface
     {
         $test = $event->getTest();
 
-        if ($test instanceof Reported) {
-            $this->currentTestCase = $this->document->createElement('testcase');
+        $this->currentTestCase = $this->document->createElement('testcase');
 
-            foreach ($test->getReportFields() as $attr => $value) {
-                if ($this->isStrict and !in_array($attr, $this->strictAttributes)) {
-                    continue;
-                }
-                $this->currentTestCase->setAttribute($attr, $value);
+        foreach ($test->getReportFields() as $attr => $value) {
+            if ($this->isStrict and !in_array($attr, $this->strictAttributes)) {
+                continue;
             }
-            return;
+            $this->currentTestCase->setAttribute($attr, $value);
         }
-
-        if (!$test instanceof TestCase) {
-            return;
-        }
-
-        $testCase = $this->document->createElement('testcase');
-        $testCase->setAttribute('name', $test->getName());
-
-        $class      = new ReflectionClass($test);
-        $methodName = $test->getName();
-
-        if ($class->hasMethod($methodName)) {
-            $method = $class->getMethod($methodName);
-
-            $testCase->setAttribute('class', $class->getName());
-            $testCase->setAttribute('classname', str_replace('\\', '.', $class->getName()));
-            $testCase->setAttribute('file', $class->getFileName());
-            $testCase->setAttribute('line', (string)$method->getStartLine());
-        }
-
-        $this->currentTestCase = $testCase;
     }
 
     public function endTest(TestEvent $event): void
@@ -258,13 +232,7 @@ class JUnitReporter implements EventSubscriberInterface
             'time',
             sprintf('%F', $time)
         );
-        $numAssertions = 0;
-
-        if (method_exists($test, 'getNumAssertions')) {
-            $numAssertions = $test->getNumAssertions();
-        } elseif (method_exists($test, 'numberOfAssertionsPerformed')) {
-            $numAssertions = $test->numberOfAssertionsPerformed();
-        }
+        $numAssertions = $test->numberOfAssertionsPerformed();
 
         $this->testSuiteAssertions[$this->testSuiteLevel] += $numAssertions;
 
@@ -275,8 +243,11 @@ class JUnitReporter implements EventSubscriberInterface
 
         $testOutput = '';
 
-        if (method_exists($test, 'hasOutput') && method_exists($test, 'getActualOutput')) {
-            $testOutput = $test->hasOutput() ? $test->getActualOutput() : '';
+        if ($test instanceof TestCaseWrapper) {
+            $testCase = $test->getTestCase();
+            if ($testCase->hasOutput()) {
+                $testOutput = $testCase->getActualOutputForAssertion();
+            }
         }
 
         if (!empty($testOutput)) {
@@ -363,25 +334,28 @@ class JUnitReporter implements EventSubscriberInterface
             return;
         }
 
-        if ($test instanceof SelfDescribing) {
+        if ($test instanceof TestCaseWrapper) {
+            $buffer = str_replace(': ', '::test', $test->toString()) . "\n";
+        } elseif ($test instanceof SelfDescribing) {
             $buffer = $test->toString() . "\n";
         } else {
             $buffer = '';
         }
 
-        $buffer .= TestFailure::exceptionToString($t) . "\n" .
-            StackTraceFilter::getFilteredStacktrace($t);
+        if (PHPUnitVersion::series() < 10) {
+            $exceptionString = TestFailure::exceptionToString($t);
+        } else {
+            $exceptionString = ThrowableToStringMapper::map($t);
+        }
+
+        $buffer .= $exceptionString . "\n" . StackTraceFilter::getFilteredStacktrace($t);
 
         $fault = $this->document->createElement(
             $type,
             Xml::prepareString($buffer)
         );
 
-        if ($t instanceof ExceptionWrapper) {
-            $fault->setAttribute('type', $t->getClassName());
-        } else {
-            $fault->setAttribute('type', $t::class);
-        }
+        $fault->setAttribute('type', $t::class);
 
         $this->currentTestCase->appendChild($fault);
     }
